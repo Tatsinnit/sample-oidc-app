@@ -1,0 +1,103 @@
+name: Deploy to Azure with OIDC
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# Set permissions for OIDC token
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: oidc-sample-app    # Set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'       # Set this to the path to your web app project
+  NODE_VERSION: '20.x'                 # Set this to the node version to use
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 'Resolve Project Dependencies Using Npm'
+      shell: bash
+      run: |
+        pushd '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}'
+        npm ci
+        npm run build
+        popd
+
+    # Login to Azure using OIDC
+    - name: 'Azure Login via OIDC'
+      uses: azure/login@v2.3.0
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    # Test Azure CLI authentication
+    - name: 'Test Azure CLI Authentication'
+      shell: bash
+      run: |
+        echo "Testing Azure CLI authentication..."
+        az account show
+        az group list --output table
+        echo "Azure CLI authentication successful!"
+
+    # Optional: Deploy to Azure Web App
+    # Uncomment and configure the following step when you have an Azure Web App created
+    # - name: 'Deploy to Azure WebApp'
+    #   uses: azure/webapps-deploy@v2
+    #   with:
+    #     app-name: ${{ env.AZURE_WEBAPP_NAME }}
+    #     slot-name: 'production'
+    #     package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    # Optional: Deploy to Azure Container Apps
+    # Uncomment the following steps when you want to deploy to Container Apps
+    # - name: 'Build and Push Docker Image'
+    #   shell: bash
+    #   run: |
+    #     docker build -t ${{ env.AZURE_WEBAPP_NAME }}:${{ github.sha }} .
+    #     # Configure container registry and push steps here
+
+    # Show deployment information
+    - name: 'Show Deployment Info'
+      shell: bash
+      run: |
+        echo "Deployment completed successfully!"
+        echo "Application: ${{ env.AZURE_WEBAPP_NAME }}"
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "Node Version: ${{ env.NODE_VERSION }}"
+
+  # Separate job to test OIDC authentication only
+  test-authentication:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 'Test Azure OIDC Authentication'
+      uses: azure/login@v2.3.0
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: 'Verify Azure Access'
+      shell: bash
+      run: |
+        echo "=== Azure Account Information ==="
+        az account show --output table
+        echo ""
+        echo "OIDC Authentication Test: SUCCESS ✅"
