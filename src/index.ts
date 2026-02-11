@@ -31,7 +31,7 @@ app.get('/info', (req, res) => {
     azureEnvs: Object.keys(process.env)
       .filter(key => key.startsWith('AZURE_'))
       .reduce((acc, key) => {
-        acc[key] = process.env[key];
+        acc[key] = process.env[key] || '';
         return acc;
       }, {} as Record<string, string>)
   });
