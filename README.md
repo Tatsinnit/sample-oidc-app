@@ -73,7 +73,7 @@ az ad app federated-credential create \
   }'
 ```
 
-### 2. Configure Azure Managed Identity Workload Identity Federation
+### 3. Configure Azure Managed Identity Workload Identity Federation
 
 Create an Azure AD application and configure OIDC:
 
@@ -107,7 +107,7 @@ az identity federated-credential create --name "GitHubOIDC1" --identity-name MyI
 ```
 
 
-### 3. Configure GitHub Secrets
+### 4. Configure GitHub Secrets
 
 Add the following secrets to your GitHub repository:
 
@@ -123,7 +123,7 @@ az account show --query tenantId -o tsv
 az account show --query id -o tsv
 ```
 
-### 4. Update GitHub Workflow
+### 5. Update GitHub Workflow
 
 Replace `YOUR_GITHUB_USERNAME/YOUR_REPO_NAME` in the federated credential subject with your actual GitHub username and repository name.
 
