@@ -73,6 +73,40 @@ az ad app federated-credential create \
   }'
 ```
 
+### 2. Configure Azure Managed Identity Workload Identity Federation
+
+Create an Azure AD application and configure OIDC:
+
+```bash
+
+# Create idenity will give a clientID
+az identity create --name MyIdentity --resource-group rg-oidc-sample
+
+# Get the application ID (client ID)
+MI_OBJECT_ID=$(az identity show --id id-from-above --query "id" -o tsv)
+
+az role assignment create \
+  --assignee-object-id $MI_OBJECT_ID \
+  --role Contributor \
+  --scope /subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-oidc-sample
+
+# list and take "id" of managedIdentiy created
+ az ad sp list --all --filter "servicePrincipalType eq 'ManagedIdentity'"
+
+# Assign Contributor role to the service principal
+ az role assignment create \
+  --assignee-object-id id-from-previous-line \
+  --role Contributor \
+  --scope /subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-oidc-sample
+
+# Configure federated credentials for GitHub Actions
+
+az identity federated-credential create --name "GitHubOIDC1" --identity-name MyIdentity --resource-group rg-oidc-sample --issuer "https://token.actions.githubusercontent.com" --subject "repo:YOUR_GITHUB_USERNAME/YOUR_REPO_NAME:ref:refs/heads/main"
+
+
+```
+
+
 ### 3. Configure GitHub Secrets
 
 Add the following secrets to your GitHub repository:
